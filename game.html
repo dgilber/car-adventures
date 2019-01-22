@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Car Adventures - Gilbert Games</title>
+
+<style>
+html, body {
+    background-color: rgb(100, 200, 255);
+    margin: 0;
+    padding: 0;
+}
+
+.car-frame {
+    background-image: url(images/car_frame.png);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    position: absolute;
+    top: 250px;
+    left: 100px;
+    width: 200px;
+    height: 150px;
+    z-index: 10;
+}
+
+.wheel {
+    background-image: url(images/wheel.png);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    position: absolute;
+    top: 60px;
+    width: 45px;
+    height: 45px;
+}
+.wheel.rear {
+    left: 20px;
+}
+.wheel.front {
+    left: 135px;
+}
+
+.gauge {
+    background-image: url(images/fuel_gauge.png);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    position: absolute;
+    top: 40px;
+    width: 200px;
+    height: 200px;
+}
+
+.fuel {
+    right: 100px;
+}
+
+.road {
+    position: absolute;
+    top: 300px;
+    width: 100%;
+    height: 600px;
+    background-color: #666666;
+}
+
+</style>
+
+<script src="lib/jquery.js"></script>
+<script>
+
+function start_wheels() {
+    var wheels = $('.wheel')
+    var degree = 0;
+    setInterval(
+        function () {
+            degree = degree + 20;
+            if (degree == 360) {
+                degree = 0;
+            }
+            wheels.css('transform', 'rotate(' + degree + 'deg)');
+        },
+        20  // milliseconds
+    )
+}
+</script>
+</head>
+
+<body>
+ <h1>Car Adventures</h1>
+
+ <div class="car-frame">
+  <div class="wheel rear"></div>
+  <div class="wheel front"></div>
+ </div>
+ <div class="fuel gauge"></div>
+ <div class="road"></div>
+
+<script>
+    start_wheels();
+</script>
+
+</body>
+</html>
