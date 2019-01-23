@@ -52,6 +52,12 @@ html, body {
     right: 100px;
 }
 
+#fuel_needle {
+    position: relative;
+    width: 200px;
+    height: 200px;
+}
+
 .road {
     position: absolute;
     top: 300px;
@@ -79,6 +85,28 @@ function start_wheels() {
         20  // milliseconds
     )
 }
+
+function set_fuel_level (level) {
+    // level is number between 0 and 100
+    var canvas = document.getElementById('fuel_needle');
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.strokeStyle = 'rgb(50, 50, 50)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(100, 65);
+    
+    // full-y: 160, 20
+    // empty-y: 160, 100
+    var range = 100 - 20;
+    var y = 100 - (range * (level / 100))
+    var off_center = 50 - Math.abs(50 - level);
+    var x_pad = Math.log2(Math.max(1, off_center / 2)) * 10;
+    ctx.lineTo(160 + x_pad + (off_center / 2), y);
+    ctx.stroke();
+    ctx.closePath();
+}
+
 </script>
 </head>
 
@@ -89,11 +117,15 @@ function start_wheels() {
   <div class="wheel rear"></div>
   <div class="wheel front"></div>
  </div>
- <div class="fuel gauge"></div>
+ <div class="fuel gauge">
+  <canvas id="fuel_needle"></canvas>
+ </div>
  <div class="road"></div>
 
+ <input type="range" name="fuel_controller" min="0" max="100" step="1" onchange="set_fuel_level(this.value)">
 <script>
     start_wheels();
+    set_fuel_level(50);
 </script>
 
 </body>
