@@ -8,6 +8,7 @@ html, body {
     background-color: rgb(100, 200, 255);
     margin: 0;
     padding: 0;
+    overflow: hidden;
 }
 
 .car-frame {
@@ -15,7 +16,7 @@ html, body {
     background-repeat: no-repeat;
     background-size: 100%;
     position: absolute;
-    top: 250px;
+    top: 315px;
     left: 100px;
     width: 200px;
     height: 150px;
@@ -59,12 +60,55 @@ html, body {
     /* background-color: rgba(255,0,0,0.2); */ /* debug */
 }
 
-.road {
+.ground {
     position: absolute;
     top: 300px;
     width: 100%;
-    height: 600px;
+    height: 2000px;
+    background-color: rgb(0, 150, 0);
+}
+
+.road {
+    position: relative;
+    top: 30px;
+    width: 100%;
+    height: 450px;
     background-color: #666666;
+}
+
+.road-line {
+    position: absolute;
+    width: 100%;
+    height: 10px;
+}
+
+.road-line.border {
+    background-color: #FFFF00;
+}
+.road-line.divider {
+    background-color: #FFFFFF;
+}
+.road-line.border.left {
+    top: 20px;
+}
+.road-line.border.right {
+    bottom: 20px;
+}
+.road-line.divider.one {
+    top: 140px;
+}
+.road-line.divider.two {
+    top: 290px;
+}
+
+.road-patch {
+    position: absolute;
+    top: 130px;
+    width: 150px;
+    height: 180px;
+    background-color: #666666;
+    
+    left: 50px;
 }
 
 </style>
@@ -72,19 +116,58 @@ html, body {
 <script src="lib/jquery.js"></script>
 <script>
 
-function start_wheels() {
-    var wheels = $('.wheel')
-    var degree = 0;
-    setInterval(
-        function () {
-            degree = degree + 20;
-            if (degree == 360) {
-                degree = 0;
-            }
-            wheels.css('transform', 'rotate(' + degree + 'deg)');
-        },
-        20  // milliseconds
-    )
+var KEY_UP = 38;
+var KEY_DOWN = 40;
+
+var wheels = [];
+var wheel_degree = 0;
+
+var road_patches = [];
+var patch_offset = 0;
+
+var car = $();
+var car_min = -50;
+var car_max = 315;
+var car_pos = car_min + ((car_max - car_min) / 2);
+var car_inc = 4;
+
+function turn_wheels() {
+    wheel_degree = (wheel_degree + 24) % 360;
+    // if (wheel_degree == 360) {
+    //     wheel_degree = 0;
+    // }
+    wheels.css('transform', 'rotate(' + wheel_degree + 'deg)');
+}
+
+function display_patches () {
+    patch_offset -= 15;
+    if (patch_offset < -300) {
+        patch_offset = 0;
+    }
+    
+    road_patches.forEach(function (p, i) {
+        $(p).css('left', (i * 300) + patch_offset);
+    });
+}
+
+function move_car () {
+    car.css('top', car_pos);
+}
+
+function keydown (e) {
+    var keycode = e.which;
+    
+    if (keycode == KEY_UP) {
+        if (car_pos > car_min) {
+            car_pos = car_pos - car_inc;
+            move_car();
+        }
+    } else if (keycode == KEY_DOWN) {
+        if (car_pos < car_max) {
+            car_pos = car_pos + car_inc;
+            move_car(); 
+        }
+    }
 }
 
 function set_fuel_level (level) {
@@ -128,25 +211,59 @@ function _toRad (d) {
     return d * Math.PI / 180;
 }
 
+
+
 </script>
 </head>
 
 <body>
  <h1>Car Adventures</h1>
 
- <div class="car-frame">
-  <div class="wheel rear"></div>
-  <div class="wheel front"></div>
- </div>
  <div class="fuel gauge">
   <canvas id="fuel_needle" width="200" height="200"></canvas>
  </div>
- <div class="road"></div>
+ <div class="ground">
+  <div class="road">
+   <div class="road-line border left"></div>
+   <div class="road-line divider one"></div>
+   <div class="road-line divider two"></div>
+   <div class="road-line border right"></div>
+   <div class="road-patch"></div>
+   <div class="road-patch"></div>
+   <div class="road-patch"></div>
+   <div class="road-patch"></div>
+   <div class="road-patch"></div>
+   <div class="road-patch"></div>
+   <div class="road-patch"></div>
+   <div class="road-patch"></div>
+   <div class="car-frame">
+    <div class="wheel rear"></div>
+    <div class="wheel front"></div>
+   </div>
+  </div>
+ </div>
 
- <input type="range" name="fuel_controller" min="0" max="100" step="1" value="100" onchange="set_fuel_level(this.value)">
+ <input type="range" name="fuel_controller" min="0" max="100" step="1" value="100" oninput="set_fuel_level(this.value)">
 <script>
-    start_wheels();
+    car = $('.car-frame');
+    wheels = $('.wheel');
+    road_patches = $('.road-patch').toArray();
+    display_patches();
+    
     set_fuel_level(100);
+    
+    // start road movement
+    setInterval(
+        function () {
+            display_patches();
+            turn_wheels();
+        },
+        20  // milliseconds
+    )
+    
+    move_car();
+    
+    $(document.body).bind('keydown', keydown);
 </script>
 
 </body>
