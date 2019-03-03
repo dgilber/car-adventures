@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Car Adventures - Gilbert Games</title>
+  <title>Car Adventures - Gilbert Games</title>
 
-<style>
-html, body {
+  <style>
+  html, body {
     background-color: rgb(100, 200, 255);
     margin: 0;
     padding: 0;
     overflow: hidden;
-}
+  }
 
-.car-frame {
-    background-image: url(images/car_frame.png);
-    background-repeat: no-repeat;
+  .car-frame {
+    background: url(images/car_frame.png) no-repeat;
     background-size: 100%;
     position: absolute;
     top: 315px;
@@ -21,169 +20,244 @@ html, body {
     width: 200px;
     height: 150px;
     z-index: 10;
-}
+  }
 
-.wheel {
-    background-image: url(images/wheel.png);
-    background-repeat: no-repeat;
+  .wheel {
+    background: url(images/wheel.png) no-repeat;
     background-size: 100%;
     position: absolute;
     top: 60px;
     width: 45px;
     height: 45px;
-}
-.wheel.rear {
-    left: 20px;
-}
-.wheel.front {
-    left: 135px;
-}
+  }
 
-.gauge {
-    background-image: url(images/fuel_gauge.png);
-    background-repeat: no-repeat;
+  .wheel.rear {
+    left: 20px;
+  }
+
+  .wheel.front {
+    left: 135px;
+  }
+
+  .gauge {
+    background: url(images/fuel_gauge.png) no-repeat;
     background-size: 100%;
     position: absolute;
     top: 40px;
     width: 200px;
     height: 200px;
-}
+  }
 
-.fuel {
+  .fuel {
     right: 100px;
-}
+  }
 
-#fuel_needle {
+  #fuel_needle {
     position: relative;
     /* width: 200px; */
     /* height: 200px; */
     /* background-color: rgba(255,0,0,0.2); */ /* debug */
-}
+  }
 
-.ground {
+  .ground {
     position: absolute;
     top: 300px;
     width: 100%;
     height: 2000px;
     background-color: rgb(0, 150, 0);
-}
+  }
 
-.road {
+  .road {
     position: relative;
     top: 30px;
     width: 100%;
     height: 450px;
     background-color: #666666;
-}
+  }
 
-.road-line {
+  .road-line {
     position: absolute;
     width: 100%;
     height: 10px;
-}
+  }
 
-.road-line.border {
+  .road-line.border {
     background-color: #FFFF00;
-}
-.road-line.divider {
-    background-color: #FFFFFF;
-}
-.road-line.border.left {
-    top: 20px;
-}
-.road-line.border.right {
-    bottom: 20px;
-}
-.road-line.divider.one {
-    top: 140px;
-}
-.road-line.divider.two {
-    top: 290px;
-}
+  }
 
-.road-patch {
+  .road-line.divider {
+    background-color: #FFFFFF;
+  }
+
+  .road-line.border.left {
+    top: 20px;
+  }
+
+  .road-line.border.right {
+    bottom: 20px;
+  }
+
+  .road-line.divider.one {
+    top: 140px;
+  }
+
+  .road-line.divider.two {
+    top: 290px;
+  }
+
+  .road-patch {
     position: absolute;
     top: 130px;
     width: 150px;
     height: 180px;
     background-color: #666666;
-    
+
     left: 50px;
-}
+  }
 
-</style>
+  .dino {
+    position: absolute;
+    right: -300px;
+    height: 200px;
+    width: 200px;
+  }
+  </style>
 
-<script src="lib/jquery.js"></script>
-<script>
+  <script src="lib/jquery.js"></script>
+  <script>
 
-var KEY_UP = 38;
-var KEY_DOWN = 40;
+  /**
+   * @typedef Object DinoOnRoad
+   * @property {jQuery} elm
+   * @property {number} left
+   */
 
-var wheels = [];
-var wheel_degree = 0;
+  /** @type {Array.<{ image_url: string, height_offset: number }>} */
+  var DINO_LIB = [
+    { image_url: 'images/trex.png', height_offset: -40 },
+    { image_url: 'images/stegasaurus.png', height_offset: 30 },
+    { image_url: 'images/brachiosaurus.png', height_offset: -30 }
+  ];
 
-var road_patches = [];
-var patch_offset = 0;
+  var KEY_UP = 38;
+  var KEY_DOWN = 40;
+  var ROAD_SPEED = 15;
+  var wheels = [];
 
-var car = $();
-var car_min = -50;
-var car_max = 315;
-var car_pos = car_min + ((car_max - car_min) / 2);
-var car_inc = 4;
+  var wheel_degree = 0;
+  var road_patches = [];
 
-function turn_wheels() {
+  var patch_offset = 0;
+  var car = $();
+  var car_min = -50;
+  var car_max = 315;
+  var car_pos = car_min + ((car_max - car_min) / 2);
+
+  var car_inc = 10;
+
+  /** @type {Array.<DinoOnRoad>} */
+  var dinos_on_road = [];
+
+  /** @type {Array.<DinoOnRoad>} */
+  var dinos_to_destroy = [];
+
+  function turn_wheels() {
     wheel_degree = (wheel_degree + 24) % 360;
     // if (wheel_degree == 360) {
     //     wheel_degree = 0;
     // }
     wheels.css('transform', 'rotate(' + wheel_degree + 'deg)');
-}
+  }
 
-function display_patches () {
-    patch_offset -= 15;
+  function display_patches() {
+    patch_offset -= ROAD_SPEED;
     if (patch_offset < -300) {
-        patch_offset = 0;
+      patch_offset = 0;
     }
-    
+
     road_patches.forEach(function (p, i) {
-        $(p).css('left', (i * 300) + patch_offset);
+      $(p).css('left', (i * 300) + patch_offset);
     });
-}
+  }
 
-function move_car () {
-    car.css('top', car_pos);
-}
-
-function keydown (e) {
-    var keycode = e.which;
-    
-    if (keycode == KEY_UP) {
-        if (car_pos > car_min) {
-            car_pos = car_pos - car_inc;
-            move_car();
-        }
-    } else if (keycode == KEY_DOWN) {
-        if (car_pos < car_max) {
-            car_pos = car_pos + car_inc;
-            move_car(); 
-        }
+  function move_dinos_on_road() {
+    for (var i = 0, len = dinos_on_road.length; i < len; i++) {
+      var dino = dinos_on_road[i];
+      dino.left -= ROAD_SPEED;
+      dino.elm.css('left', dino.left);
+      if (dino.left < -200) {
+        dinos_to_destroy.push(dino);
+      }
     }
-}
+    for (var i = dinos_to_destroy.length - 1; i >= 0; i--) {
+      dinos_to_destroy[i].elm.remove();
+      dinos_to_destroy.splice(i, 1);
+    }
+  }
 
-function set_fuel_level (level) {
+  function new_dino() {
+    insert_dino(
+        parseInt($('INPUT[name="dino_index"]:checked').val(), 10),
+        parseInt($('#lane_index').val(), 10)
+    );
+  }
+
+  function new_random_dino() {
+    insert_dino(
+        Math.max(2, Math.ceil(Math.random() * DINO_LIB.length)),
+        Math.max(2, Math.ceil(Math.random() * 3))
+    );
+  }
+
+  function insert_dino(dino_index, lane_index) {
+    var dino = DINO_LIB[dino_index];
+
+    var elm = $('<div class="dino">').appendTo('.road');
+    elm.css({
+      background: 'url(' + dino.image_url + ') no-repeat',
+      backgroundSize: '100%',
+      top: (lane_index * 140) + dino.height_offset
+    });
+    dinos_on_road.push({
+      elm: elm,
+      left: 2000
+    });
+  }
+
+  function move_car() {
+    car.css('top', car_pos);
+  }
+
+  function keydown(e) {
+    var keycode = e.which;
+
+    if (keycode === KEY_UP) {
+      if (car_pos > car_min) {
+        car_pos = car_pos - car_inc;
+        move_car();
+      }
+    } else if (keycode === KEY_DOWN) {
+      if (car_pos < car_max) {
+        car_pos = car_pos + car_inc;
+        move_car();
+      }
+    }
+  }
+
+  function set_fuel_level(level) {
     // level is integer between 0 and 100
     var center = point(80, 90)
     var r = 60;
     var dr = 125;
     var d = (dr * (level / 100)) - (dr / 2)
-          + 8;  // +8 because drawing isn't completely vertical
+        + 8;  // +8 because drawing isn't completely vertical
     if (d < 0) {
-        d += 360;
+      d += 360;
     }
     var edge = circleEdge(center, r, d);
     var edgeY = center.y + (center.y - edge.y);
     console.log('level: %s, degree: %d, edge: [%d, %d]', level, d, edge.x, edgeY);
-    
+
     var canvas = document.getElementById('fuel_needle');
     var ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -194,76 +268,88 @@ function set_fuel_level (level) {
     ctx.lineTo(edge.x, edgeY);
     ctx.stroke();
     ctx.closePath();
-}
+  }
 
-function circleEdge (center, radius, degree) {
+  function circleEdge(center, radius, degree) {
     return point(
         center.x + radius * Math.cos(_toRad(degree)),
         center.y + radius * Math.sin(_toRad(degree))
     );
-}
+  }
 
-function point (x, y) {
-    return {x, y};
-}
+  function point(x, y) {
+    return { x: x, y: y };
+  }
 
-function _toRad (d) {
+  function _toRad(d) {
     return d * Math.PI / 180;
-}
+  }
 
 
-
-</script>
+  </script>
 </head>
 
 <body>
- <h1>Car Adventures</h1>
+<h1>Car Adventures</h1>
 
- <div class="fuel gauge">
+<div class="fuel gauge">
   <canvas id="fuel_needle" width="200" height="200"></canvas>
- </div>
- <div class="ground">
+</div>
+<div class="ground">
   <div class="road">
-   <div class="road-line border left"></div>
-   <div class="road-line divider one"></div>
-   <div class="road-line divider two"></div>
-   <div class="road-line border right"></div>
-   <div class="road-patch"></div>
-   <div class="road-patch"></div>
-   <div class="road-patch"></div>
-   <div class="road-patch"></div>
-   <div class="road-patch"></div>
-   <div class="road-patch"></div>
-   <div class="road-patch"></div>
-   <div class="road-patch"></div>
-   <div class="car-frame">
-    <div class="wheel rear"></div>
-    <div class="wheel front"></div>
-   </div>
+    <div class="road-line border left"></div>
+    <div class="road-line divider one"></div>
+    <div class="road-line divider two"></div>
+    <div class="road-line border right"></div>
+    <div class="road-patch"></div>
+    <div class="road-patch"></div>
+    <div class="road-patch"></div>
+    <div class="road-patch"></div>
+    <div class="road-patch"></div>
+    <div class="road-patch"></div>
+    <div class="road-patch"></div>
+    <div class="road-patch"></div>
+    <div class="car-frame">
+      <div class="wheel rear"></div>
+      <div class="wheel front"></div>
+    </div>
   </div>
- </div>
+</div>
 
- <input type="range" name="fuel_controller" min="0" max="100" step="1" value="100" oninput="set_fuel_level(this.value)">
+<input type="range" name="fuel_controller" min="0" max="100" step="1" value="100"
+       oninput="set_fuel_level(this.value)">
+<ul style="list-style: none none;">
+  <li><label><input type="radio" name="dino_index" value="0" checked="checked">T-Rex</label></li>
+  <li><label><input type="radio" name="dino_index" value="1">Stegosaurus</label></li>
+  <li><label><input type="radio" name="dino_index" value="2">Brachiosaurus</label></li>
+</ul>
+<select id="lane_index">
+  <option value="0">1</option>
+  <option value="1">2</option>
+  <option value="2">3</option>
+</select>
+<button type="button" onclick="new_dino()">New Dino</button>
 <script>
-    car = $('.car-frame');
-    wheels = $('.wheel');
-    road_patches = $('.road-patch').toArray();
-    display_patches();
-    
-    set_fuel_level(100);
-    
-    // start road movement
-    setInterval(
-        function () {
-            display_patches();
-            turn_wheels();
-        },
-        20  // milliseconds
-    )
-    
-    move_car();
-    
-    $(document.body).bind('keydown', keydown);
+car = $('.car-frame');
+wheels = $('.wheel');
+road_patches = $('.road-patch').toArray();
+display_patches();
+
+set_fuel_level(100);
+
+// start road movement
+setInterval(
+    function () {
+      display_patches();
+      move_dinos_on_road();
+      turn_wheels();
+    },
+    20  // milliseconds
+)
+
+move_car();
+
+$(document.body).bind('keydown', keydown);
 </script>
 
 </body>
