@@ -146,6 +146,8 @@
   var ROAD_SPEED = 15;
   var CAR_MOVE_PIXELS = 10;
   var CAR_MOVE_MILLIS = 50;
+  var DINO_YES_THRESHOLD = 0.5;
+  var DINO_CREATE_MILLIS = 1000;
   var wheels = [];
 
   var wheel_degree = 0;
@@ -187,6 +189,19 @@
     });
   }
 
+  function should_create_dino() {
+    var rand = Math.random();
+    return (rand <= DINO_YES_THRESHOLD);
+  }
+
+  function check_new_dino() {
+    if (should_create_dino()) {
+      var dino = Math.floor(Math.random() * 3);
+      var lane = Math.floor(Math.random() * 3);
+      insert_dino(dino, lane);
+    }
+  }
+
   function move_dinos_on_road() {
     for (var i = 0, len = dinos_on_road.length; i < len; i++) {
       var dino = dinos_on_road[i];
@@ -206,13 +221,6 @@
     insert_dino(
         parseInt($('INPUT[name="dino_index"]:checked').val(), 10),
         parseInt($('#lane_index').val(), 10)
-    );
-  }
-
-  function new_random_dino() {
-    insert_dino(
-        Math.max(2, Math.ceil(Math.random() * DINO_LIB.length)),
-        Math.max(2, Math.ceil(Math.random() * 3))
     );
   }
 
@@ -284,7 +292,7 @@
     }
     var edge = circleEdge(center, r, d);
     var edgeY = center.y + (center.y - edge.y);
-    console.log('level: %s, degree: %d, edge: [%d, %d]', level, d, edge.x, edgeY);
+    // console.log('level: %s, degree: %d, edge: [%d, %d]', level, d, edge.x, edgeY);
 
     var canvas = document.getElementById('fuel_needle');
     var ctx = canvas.getContext('2d');
@@ -394,6 +402,9 @@ move_car();
 $(document.body)
   .bind('keydown', keydown)
   .bind('keyup', keyup);
+
+setInterval(check_new_dino, DINO_CREATE_MILLIS);
+
 </script>
 
 </body>
