@@ -141,12 +141,18 @@
 
   var KEY_UP = 38;
   var KEY_DOWN = 40;
+  var KEY_NONE = -1;
+
   var ROAD_SPEED = 15;
+  var CAR_MOVE_PIXELS = 10;
+  var CAR_MOVE_MILLIS = 50;
   var wheels = [];
 
   var wheel_degree = 0;
   var road_patches = [];
   var fuel_level = 100;
+  var current_keycode = KEY_NONE;
+  var keycode_timer = null;
 
   var patch_offset = 0;
   var car = $();
@@ -155,7 +161,6 @@
   var car_pos = car_min + ((car_max - car_min) / 2);
 
   var is_over = false;
-  var car_inc = 10;
 
   /** @type {Array.<DinoOnRoad>} */
   var dinos_on_road = [];
@@ -232,19 +237,38 @@
 
   function keydown(e) {
     var keycode = e.which;
-
-    if (!is_over) {
+    if (!is_over && current_keycode === KEY_NONE) {
+      var fn = null;
       if (keycode === KEY_UP) {
-        if (car_pos > car_min) {
-          car_pos = car_pos - car_inc;
-          move_car();
+        current_keycode = keycode;
+        fn = function () {
+          if (car_pos > car_min) {
+            car_pos = car_pos - CAR_MOVE_PIXELS;
+            move_car();
+          }
         }
       } else if (keycode === KEY_DOWN) {
-        if (car_pos < car_max) {
-          car_pos = car_pos + car_inc;
-          move_car();
+        current_keycode = keycode;
+        fn = function () {
+          if (car_pos < car_max) {
+            car_pos = car_pos + CAR_MOVE_PIXELS;
+            move_car();
+          }
         }
       }
+
+      if (fn !== null) {
+        fn();
+        keycode_timer = setInterval(fn, CAR_MOVE_MILLIS);
+      }
+    }
+  }
+
+  function keyup(e) {
+    var keycode = e.which;
+    if (keycode === current_keycode) {
+      clearInterval(keycode_timer);
+      current_keycode = KEY_NONE;
     }
   }
 
@@ -363,11 +387,13 @@ var fuel_timer = setInterval(
         set_fuel_level(--fuel_level);
       }
     },
-    1000  // milliseconds
+    500  // milliseconds
 );
 move_car();
 
-$(document.body).bind('keydown', keydown);
+$(document.body)
+  .bind('keydown', keydown)
+  .bind('keyup', keyup);
 </script>
 
 </body>
