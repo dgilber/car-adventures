@@ -134,9 +134,9 @@
 
   /** @type {Array.<{ image_url: string, height_offset: number }>} */
   var DINO_LIB = [
-    { image_url: 'images/trex.png', height_offset: -40 },
-    { image_url: 'images/stegasaurus.png', height_offset: 30 },
-    { image_url: 'images/brachiosaurus.png', height_offset: -30 }
+    {image_url: 'images/trex.png', height_offset: -40},
+    {image_url: 'images/stegasaurus.png', height_offset: 30},
+    {image_url: 'images/brachiosaurus.png', height_offset: -30}
   ];
 
   var KEY_UP = 38;
@@ -146,6 +146,7 @@
 
   var wheel_degree = 0;
   var road_patches = [];
+  var fuel_level = 100;
 
   var patch_offset = 0;
   var car = $();
@@ -153,6 +154,7 @@
   var car_max = 315;
   var car_pos = car_min + ((car_max - car_min) / 2);
 
+  var is_over = false;
   var car_inc = 10;
 
   /** @type {Array.<DinoOnRoad>} */
@@ -231,15 +233,17 @@
   function keydown(e) {
     var keycode = e.which;
 
-    if (keycode === KEY_UP) {
-      if (car_pos > car_min) {
-        car_pos = car_pos - car_inc;
-        move_car();
-      }
-    } else if (keycode === KEY_DOWN) {
-      if (car_pos < car_max) {
-        car_pos = car_pos + car_inc;
-        move_car();
+    if (!is_over) {
+      if (keycode === KEY_UP) {
+        if (car_pos > car_min) {
+          car_pos = car_pos - car_inc;
+          move_car();
+        }
+      } else if (keycode === KEY_DOWN) {
+        if (car_pos < car_max) {
+          car_pos = car_pos + car_inc;
+          move_car();
+        }
       }
     }
   }
@@ -278,7 +282,7 @@
   }
 
   function point(x, y) {
-    return { x: x, y: y };
+    return {x: x, y: y};
   }
 
   function _toRad(d) {
@@ -316,37 +320,51 @@
   </div>
 </div>
 
-<input type="range" name="fuel_controller" min="0" max="100" step="1" value="100"
-       oninput="set_fuel_level(this.value)">
-<ul style="list-style: none none;">
-  <li><label><input type="radio" name="dino_index" value="0" checked="checked">T-Rex</label></li>
-  <li><label><input type="radio" name="dino_index" value="1">Stegosaurus</label></li>
-  <li><label><input type="radio" name="dino_index" value="2">Brachiosaurus</label></li>
-</ul>
-<select id="lane_index">
-  <option value="0">1</option>
-  <option value="1">2</option>
-  <option value="2">3</option>
-</select>
-<button type="button" onclick="new_dino()">New Dino</button>
+<div class="controls" style="display:block;">
+  <input type="range" name="fuel_controller" min="0" max="100" step="1" value="100"
+         oninput="set_fuel_level(this.value)">
+  <ul style="list-style: none none;">
+    <li><label><input type="radio" name="dino_index" value="0" checked="checked">T-Rex</label></li>
+    <li><label><input type="radio" name="dino_index" value="1">Stegosaurus</label></li>
+    <li><label><input type="radio" name="dino_index" value="2">Brachiosaurus</label></li>
+  </ul>
+  <select id="lane_index">
+    <option value="0">1</option>
+    <option value="1">2</option>
+    <option value="2">3</option>
+  </select>
+  <button type="button" onclick="new_dino()">New Dino</button>
+</div>
 <script>
 car = $('.car-frame');
 wheels = $('.wheel');
 road_patches = $('.road-patch').toArray();
 display_patches();
 
-set_fuel_level(100);
+set_fuel_level(fuel_level);
 
 // start road movement
-setInterval(
+var road_timer = setInterval(
     function () {
       display_patches();
       move_dinos_on_road();
       turn_wheels();
     },
     20  // milliseconds
-)
+);
 
+var fuel_timer = setInterval(
+    function () {
+      if (--fuel_level < 0) {
+        clearInterval(road_timer);
+        clearInterval(fuel_timer);
+        is_over = true;
+      } else {
+        set_fuel_level(--fuel_level);
+      }
+    },
+    1000  // milliseconds
+);
 move_car();
 
 $(document.body).bind('keydown', keydown);
