@@ -18,7 +18,7 @@
     top: 315px;
     left: 100px;
     width: 200px;
-    height: 150px;
+    height: 103px;
     z-index: 10;
   }
 
@@ -132,11 +132,11 @@
    * @property {number} left
    */
 
-  /** @type {Array.<{ image_url: string, height_offset: number }>} */
+  /** @type {Array.<{ image_url: string, height_offset: number, height: number, width: number }>} */
   var DINO_LIB = [
-    {image_url: 'images/trex.png', height_offset: -40},
-    {image_url: 'images/stegasaurus.png', height_offset: 30},
-    {image_url: 'images/brachiosaurus.png', height_offset: -30}
+    {image_url: 'images/trex.png', height_offset: -40, height: 160, width: 200},
+    {image_url: 'images/stegasaurus.png', height_offset: 30, height: 75, width: 200},
+    {image_url: 'images/brachiosaurus.png', height_offset: -30, height: 145, width: 200}
   ];
 
   var KEY_UP = 38;
@@ -144,11 +144,20 @@
   var KEY_NONE = -1;
 
   var ROAD_SPEED = 15;
-  var CAR_MOVE_PIXELS = 10;
+  var CAR_MOVE_PIXELS = 7;
   var CAR_MOVE_MILLIS = 50;
   var DINO_YES_THRESHOLD = 0.5;
   var DINO_CREATE_MILLIS = 1000;
   var wheels = [];
+  var WHEEL_SPIN_DEGREES = 24;  // should be a divisor of 360 (degrees) for smooth animation.
+
+  // see `init()`.
+  var ROAD_HEIGHT = -1;
+  var DRIVE_TOP = -1;
+  var DRIVE_HEIGHT = -1;
+  var CAR_HEIGHT = -1;
+  var car = null;
+  var car_pos = -1;
 
   var wheel_degree = 0;
   var road_patches = [];
@@ -157,12 +166,8 @@
   var keycode_timer = null;
 
   var patch_offset = 0;
-  var car = $();
-  var car_min = -50;
-  var car_max = 315;
-  var car_pos = car_min + ((car_max - car_min) / 2);
 
-  var is_over = false;
+  var is_game_over = false;
 
   /** @type {Array.<DinoOnRoad>} */
   var dinos_on_road = [];
@@ -171,7 +176,7 @@
   var dinos_to_destroy = [];
 
   function turn_wheels() {
-    wheel_degree = (wheel_degree + 24) % 360;
+    wheel_degree = (wheel_degree + WHEEL_SPIN_DEGREES) % 360;
     // if (wheel_degree == 360) {
     //     wheel_degree = 0;
     // }
@@ -189,16 +194,22 @@
     });
   }
 
+  /** @returns {boolean} Whether a new dinosaur should be added to the road. */
   function should_create_dino() {
     var rand = Math.random();
     return (rand <= DINO_YES_THRESHOLD);
   }
 
+  /**
+   * Called at regular interval to add new dinosaurs to the road.
+   */
   function check_new_dino() {
-    if (should_create_dino()) {
-      var dino = Math.floor(Math.random() * 3);
-      var lane = Math.floor(Math.random() * 3);
-      insert_dino(dino, lane);
+    if (!is_game_over) {
+      if (should_create_dino()) {
+        var dino = Math.floor(Math.random() * 3);
+        var onroad_height = Math.floor(Math.random() * ROAD_HEIGHT);
+        insert_dino(dino, onroad_height);
+      }
     }
   }
 
@@ -217,21 +228,23 @@
     }
   }
 
+  /**
+   * Listener of "New Dino" button, inserts a dinosaur on the road at a random height. */
   function new_dino() {
     insert_dino(
         parseInt($('INPUT[name="dino_index"]:checked').val(), 10),
-        parseInt($('#lane_index').val(), 10)
+        Math.round(Math.random() * ROAD_HEIGHT)
     );
   }
 
-  function insert_dino(dino_index, lane_index) {
+  function insert_dino(dino_index, onroad_height) {
     var dino = DINO_LIB[dino_index];
 
     var elm = $('<div class="dino">').appendTo('.road');
     elm.css({
       background: 'url(' + dino.image_url + ') no-repeat',
       backgroundSize: '100%',
-      top: (lane_index * 140) + dino.height_offset
+      top: onroad_height - dino.height
     });
     dinos_on_road.push({
       elm: elm,
@@ -240,27 +253,31 @@
   }
 
   function move_car() {
-    car.css('top', car_pos);
+    car.css('top', car_pos - CAR_HEIGHT);
   }
 
   function keydown(e) {
     var keycode = e.which;
-    if (!is_over && current_keycode === KEY_NONE) {
+    if (!is_game_over && current_keycode === KEY_NONE) {
       var fn = null;
       if (keycode === KEY_UP) {
         current_keycode = keycode;
         fn = function () {
-          if (car_pos > car_min) {
-            car_pos = car_pos - CAR_MOVE_PIXELS;
-            move_car();
+          if (!is_game_over) {
+            if (car_pos > DRIVE_TOP) {
+              car_pos = car_pos - CAR_MOVE_PIXELS;
+              move_car();
+            }
           }
         }
       } else if (keycode === KEY_DOWN) {
         current_keycode = keycode;
         fn = function () {
-          if (car_pos < car_max) {
-            car_pos = car_pos + CAR_MOVE_PIXELS;
-            move_car();
+          if (!is_game_over) {
+            if (car_pos < (DRIVE_TOP + DRIVE_HEIGHT)) {
+              car_pos = car_pos + CAR_MOVE_PIXELS;
+              move_car();
+            }
           }
         }
       }
@@ -321,6 +338,16 @@
     return d * Math.PI / 180;
   }
 
+  function init() {
+    var borderLeft = $('.road-line.border.left');
+    var borderRight = $('.road-line.border.right');
+    ROAD_HEIGHT = $('.road').height();
+    CAR_HEIGHT = car.height();
+    DRIVE_TOP = parseFloat(borderLeft.css('top')) + borderLeft.height();
+    DRIVE_HEIGHT = parseFloat(borderRight.css('top')) - DRIVE_TOP;
+
+    car_pos = DRIVE_TOP + ((DRIVE_HEIGHT - DRIVE_TOP) / 2);
+  }
 
   </script>
 </head>
@@ -360,11 +387,6 @@
     <li><label><input type="radio" name="dino_index" value="1">Stegosaurus</label></li>
     <li><label><input type="radio" name="dino_index" value="2">Brachiosaurus</label></li>
   </ul>
-  <select id="lane_index">
-    <option value="0">1</option>
-    <option value="1">2</option>
-    <option value="2">3</option>
-  </select>
   <button type="button" onclick="new_dino()">New Dino</button>
 </div>
 <script>
@@ -374,6 +396,8 @@ road_patches = $('.road-patch').toArray();
 display_patches();
 
 set_fuel_level(fuel_level);
+
+init();
 
 // start road movement
 var road_timer = setInterval(
@@ -390,7 +414,7 @@ var fuel_timer = setInterval(
       if (--fuel_level < 0) {
         clearInterval(road_timer);
         clearInterval(fuel_timer);
-        is_over = true;
+        is_game_over = true;
       } else {
         set_fuel_level(--fuel_level);
       }
